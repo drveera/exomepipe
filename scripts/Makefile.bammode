@@ -1,0 +1,161 @@
+#!/bin/make
+
+#let's call a common directory gatk and will access all files in it, so the user has to specify only the location of gatk bundle folder with --gbundle argument
+
+#the default location of the gatk bundle
+
+#sample =
+#read1 = 
+#read2 =
+#outdir=
+gbundle = /data/refseq/tooldata/GATKbundle/2.8/b37
+reference = /home/veera/faststorage/resources/reference_genome/human.b37.fasta
+gold_indels = $(gbundle)/Mills_and_1000G_gold_standard.indels.b37.vcf
+dbsnp_vcf = $(gbundle)/dbsnp_138.b37.vcf
+hapmap_vcf = $(gbundle)/hapmap_3.3.b37.vcf
+omni_vcf = $(gbundle)/1000G_omni2.5.b37.vcf
+#G1000_vcf=""
+#mills_vcf=""
+
+
+
+.PHONY = test
+
+#output files naming schema
+
+#all the fastq files have common names, so the sample names should be extracted from the path name and this could be an issue when the user specifies a file with a different pathnames
+
+#create a directory for each sample and put the derived files in that directory
+
+
+test:
+	echo $(outdir)
+#############################################################################################
+#ALIGNMENT
+
+
+
+################################################################################################
+# PICARD
+
+
+
+$(outdir)/picard/$(sample).cleaned.bam: $(bamfile)
+	picard CleanSam \
+	INPUT=$(bamfile) \
+	OUTPUT=$(outdir)/picard/$(sample).cleaned.bam
+##############
+
+###############
+
+$(outdir)/picard/$(sample).sorted.cleaned.bam: $(outdir)/picard/$(sample).cleaned.bam
+	picard SortSam \
+	INPUT=$(outdir)/picard/$(sample).cleaned.bam \
+	OUTPUT=$(outdir)/picard/$(sample).sorted.cleaned.bam \
+	SORT_ORDER=coordinate \
+	TMP_DIR=$(tmpdir)
+################
+
+$(outdir)/picard/$(sample).sorted.cleaned.dedup.bam: $(outdir)/picard/$(sample).sorted.cleaned.bam
+	picard MarkDuplicates \
+	INPUT=$(outdir)/picard/$(sample).sorted.cleaned.bam \
+	OUTPUT=$(outdir)/picard/$(sample).sorted.cleaned.dedup.bam \
+	METRICS_FILE=metrics.txt \
+	TMP_DIR=$(tmpdir) 
+
+
+$(outdir)/picard/$(sample).sorted.cleaned.dedup.bai: $(outdir)/picard/$(sample).sorted.cleaned.dedup.bam
+	picard BuildBamIndex \
+	INPUT=$(outdir)/picard/$(sample).sorted.cleaned.dedup.bam \
+	TMP_DIR=$(tmpdir) 
+
+
+#####################################################################################################
+# GATK
+
+
+#Perform local realignment around indels
+
+$(outdir)/gatk/$(sample).realignment.targets.list: $(outdir)/picard/$(sample).sorted.cleaned.dedup.bam $(outdir)/picard/$(sample).sorted.cleaned.dedup.bai
+	gatk -T RealignerTargetCreator \
+	-nt 4 \
+	-R $(reference) \
+	-L $(bed) \
+	--interval_padding 100 \
+	-I $(outdir)/picard/$(sample).sorted.cleaned.dedup.bam \
+	-known $(gold_indels) \
+	-o $(outdir)/gatk/$(sample).realignment.targets.list 
+#	-fixMisencodedQuals
+
+
+#Perform realignment of the target intervals
+$(outdir)/gatk/$(sample).sorted.dedup.realigned.bam: $(outdir)/picard/$(sample).sorted.cleaned.dedup.bam $(outdir)/picard/$(sample).sorted.cleaned.dedup.bai $(outdir)/gatk/$(sample).realignment.targets.list
+	gatk \
+	-T IndelRealigner \
+	-R $(reference) \
+	-I $(outdir)/picard/$(sample).sorted.cleaned.dedup.bam \
+	-targetIntervals $(outdir)/gatk/$(sample).realignment.targets.list \
+	-known $(gold_indels) \
+	-o $(outdir)/gatk/$(sample).sorted.dedup.realigned.bam 
+#	-fixMisencodedQuals
+
+#Analyze patterns of covariation in the sequence dataset
+$(outdir)/gatk/${sample}_recal_data.table: $(outdir)/gatk/$(sample).sorted.dedup.realigned.bam 
+	gatk \
+	-T BaseRecalibrator \
+	-nct 4 \
+	-R $(reference) \
+	-I $(outdir)/gatk/$(sample).sorted.dedup.realigned.bam \
+	-knownSites $(dbsnp_vcf) \
+	-knownSites $(gold_indels) \
+	-o $(outdir)/gatk/${sample}_recal_data.table
+
+#Do a second pass to analyze covariation remaining after recalibration
+$(outdir)/gatk/$(sample)_post_recal_data.table: $(outdir)/gatk/$(sample).sorted.dedup.realigned.bam
+	gatk \
+	-T BaseRecalibrator \
+	-nct 4 \
+	-R $(reference) \
+	-L $(bed) \
+	--interval_padding 100 \
+	-I $(outdir)/gatk/$(sample).sorted.dedup.realigned.bam \
+	-knownSites $(dbsnp_vcf) \
+	-knownSites $(gold_indels) \
+	-BQSR $(outdir)/gatk/$(sample)_recal_data.table \
+	-o $(outdir)/gatk/$(sample)_post_recal_data.table
+
+# Generate before/after plots
+$(outdir)/gatk/$(sample)_recalibration_plots.pdf: $(outdir)/gatk/$(sample)_recal_data.table $(outdir)/gatk/$(sample)_post_recal_data.table
+	gatk \
+	-T AnalyzeCovariates \
+	-R $(reference) \
+	-before $(outdir)/gatk/$(sample)_recal_data.table \
+	-after $(outdir)/gatk/$(sample)_post_recal_data.table \
+	-plots $(outdir)/gatk/$(sample)_recalibration_plots.pdf
+
+#Apply the recalibration to your sequence data
+$(outdir)/gatk/$(sample).recal.bam: $(outdir)/gatk/$(sample).sorted.dedup.realigned.bam $(outdir)/gatk/$(sample)_recal_data.table
+	gatk \
+	-T PrintReads \
+	-nct 4  \
+	-R $(reference) \
+	-I $(outdir)/gatk/$(sample).sorted.dedup.realigned.bam \
+	-BQSR $(outdir)/gatk/$(sample)_recal_data.table \
+	-o $(outdir)/gatk/$(sample).recal.bam 
+
+#Call variants in your sequence data single file
+#step 1 create individual gvcf files
+$(outdir)/gatk/$(sample).raw.snps.indels.g.VCF: $(outdir)/gatk/$(sample).recal.bam
+	gatk \
+	-T HaplotypeCaller \
+	-nct 4 \
+	-R $(reference) \
+	-L $(bed) \
+	--interval_padding 100 \
+	-I $(outdir)/gatk/$(sample).recal.bam \
+	--emitRefConfidence GVCF \
+	-o $(outdir)/gatk/$(sample).raw.snps.indels.g.VCF \
+	--variant_index_type LINEAR \
+	--variant_index_parameter 128000
+
+

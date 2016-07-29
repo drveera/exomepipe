@@ -54,8 +54,7 @@ or
 | `--outdir` | folder where you need the output                                        |
 | `--bed`    | exome capture intervals                                                 |
 
-	> 
-	**always use full path when specifying the files or folders**
+**always use full path when specifying the files or folders**
 
 ##Step 2
 

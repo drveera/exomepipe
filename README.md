@@ -44,7 +44,9 @@ This pipeline is made to work inside the iPSYCH cluster environment where the re
 
 ####Usage
 `exomepipe --fqlist <value> --outdir <value> --bed <value>`
+
 or
+
 `exomepipe --bamlist <value> --outdir <value> --bed <value>`
 
 | Argument | Value                                                                   |

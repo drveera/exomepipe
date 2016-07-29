@@ -73,5 +73,5 @@ or
 
 | Argument | Value                                                      |
 |----------|------------------------------------------------------------|
-| --gzlist | a file with the  list of g.vcf files generated from step 1 |
+| --gzlist | a file with the  list of multisample g.vcf files generated from step 2 |
 | --outdir | folder where you need the output                           |

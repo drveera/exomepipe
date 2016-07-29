@@ -60,6 +60,7 @@ or
 
 ####Usage
 `exomepipe --gvcflist <value> --outdir <value>`
+
 | Argument   | Value                                                      |
 |------------|------------------------------------------------------------|
 | --gvcflist | a file with the  list of g.vcf files generated from step 1 |
@@ -69,6 +70,7 @@ or
 
 ####Usage
 `exomepipe --gzlist <value> --outdir <value>`
+
 | Argument | Value                                                      |
 |----------|------------------------------------------------------------|
 | --gzlist | a file with the  list of g.vcf files generated from step 1 |

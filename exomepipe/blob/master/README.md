@@ -44,7 +44,9 @@ This pipeline is made to work inside the iPSYCH cluster environment where the re
 
 ####Usage
 `exomepipe --fqlist <value> --outdir <value> --bed <value>`
+
 or
+
 `exomepipe --bamlist <value> --outdir <value> --bed <value>`
 
 | Argument | Value                                                                   |
@@ -54,16 +56,28 @@ or
 | `--outdir` | folder where you need the output                                        |
 | `--bed`    | exome capture intervals                                                 |
 
-	> **always use full path when specifying the files or folders**
+> **always use full path when specifying the files or folders**
+
+the fq files should have extension '.fq1'
+
 
 ##Step 2
 
 ####Usage
 `exomepipe --gvcflist <value> --outdir <value>`
+
 | Argument   | Value                                                      |
 |------------|------------------------------------------------------------|
 | --gvcflist | a file with the  list of g.vcf files generated from step 1 |
 | --outdir   | folder where you need the output                           |
 
 ##Step 3
+
+####Usage
+`exomepipe --gzlist <value> --outdir <value>`
+
+| Argument | Value                                                      |
+|----------|------------------------------------------------------------|
+| --gzlist | a file with the  list of g.vcf files generated from step 1 |
+| --outdir | folder where you need the output                           |
 

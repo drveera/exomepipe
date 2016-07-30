@@ -56,7 +56,10 @@ or
 | `--outdir` | folder where you need the output                                        |
 | `--bed`    | exome capture intervals                                                 |
 
->**always use full path when specifying the files or folders**
+> **always use full path when specifying the files or folders**
+
+the fq files should have extension '.fq1'
+
 
 ##Step 2
 
@@ -75,5 +78,6 @@ or
 
 | Argument | Value                                                      |
 |----------|------------------------------------------------------------|
-| --gzlist | a file with the  list of multisample g.vcf files generated from step 2 |
+| --gzlist | a file with the  list of g.vcf files generated from step 1 |
 | --outdir | folder where you need the output                           |
+

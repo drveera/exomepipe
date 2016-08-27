@@ -40,21 +40,22 @@ mkdir $outdir/$sample/tmp #to store java temp files
 
 tmpdir=$outdir/$sample/tmp
 
-export JAVA_OPTS="-Xmx8g -Xms6g -Djava.io.tmpdir=$tmpdir"
+export _JAVA_OPTIONS="-Xmx16g -Xms8g -Djava.io.tmpdir=$tmpdir"
 
 
 mkdir $outdir/$sample/bwa
 mkdir $outdir/$sample/gatk
 mkdir $outdir/$sample/picard
 
+scriptdir=`dirname $0`
 if [ ! -z $read1 ];
 then
-    make -f Makefile.fqmode $outdir/$sample/gatk/$sample.raw.snps.indels.g.VCF sample=$sample read1=$read1 read2=$read2 outdir=$outdir/$sample tmpdir=$tmpdir bed=$bed $options
+    make -f $scriptdir/Makefile.fqmode $outdir/$sample/gatk/$sample.raw.snps.indels.g.VCF sample=$sample read1=$read1 read2=$read2 outdir=$outdir/$sample tmpdir=$tmpdir bed=$bed bamfile=$bamfile $options
 fi
 
 if [ ! -z $bamfile ];
 then
-    make -f Makefile.bammode $outdir/$sample/gatk/$sample.raw.snps.indels.g.VCF sample=$sample outdir=$outdir/$sample tmpdir=$tmpdir bed=$bed $options
+    make -f $scriptdir/Makefile.bammode $outdir/$sample/gatk/$sample.raw.snps.indels.g.VCF sample=$sample outdir=$outdir/$sample tmpdir=$tmpdir bed=$bed bamfile=$bamfile $options
 fi
 
 

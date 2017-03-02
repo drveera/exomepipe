@@ -4,7 +4,27 @@ OPTS=`getopt -o h -l read1:,read2:,sample:,gbundle:,outdir:,fqlist:,bamlist:,bed
 
 eval set -- "$OPTS"
 helpmessage(){
-    echo "This is a help message"
+    echo "
+USAGE:
+1. If you want to run a single sample:
+exomepipe --read1 <fastq1> --read2 <fastq2> --bed <capture interval file> --sample <outfilename> --outdir <output folder>
+
+2. If you want to run multiple fastq files:
+exomepipe --fqlist <list file> --outdir <outfolder> --bed <capture file>
+
+3. If you want to run multiple bam files:
+exomepipe --bamlist <list file> --outdir <outfolder> --bed <capture file>
+
+OPTIONS:
+--read1 <fastq1>
+--read2 <fastq2>
+--sample <samplename>
+--outdir <dir>
+--fqlist <file with list of fq files, 2 columns column1 with read1 and column2 with read2>
+--bamlist <file with list of bam files>
+--bed <capture interval in bed format>
+--gvcflist <file with list of gvcf files>
+--gzlist <file with list of gz files>"
 }
 
 while true; do
@@ -20,7 +40,7 @@ while true; do
 	--gvcflist) gvcflist=$2; shift 2;;
 	--gzlist) gzlist=$2; shift 2;;
 	-h | --help) helpmessage; exit 1; shift ;; 
-	--) echo "type -h for help"; shift; break;;
+#	--) echo "type -h for help"; shift; break;;
 	*) break ;;
     esac
 done
@@ -53,9 +73,10 @@ then
 	r1=$fq
 	r2=`echo "$fq" | awk '{gsub("1.fq.gz","2.fq.gz"); print}'`
 
-	sample=`echo "$fq" | awk '{gsub("/","."); print}' | awk '{gsub("^.",""); print}' | awk '{gsub("_1.fq.gz",""); print}'`
+	#sample=`echo "$fq" | awk '{gsub("/","."); print}' | awk '{gsub("^.",""); print}' | awk '{gsub("_1.fq.gz",""); print}'`
+	sample=$(basename $fq)_folder
 	echo "$sample"
-	echo "sh $scriptdir/exome.pipeline.sh --read1 $r1 --read2 $r2 --sample $sample --outdir $outdir --bed $bed" >> $outdir/exome.job.adispatch
+	echo "sh $scriptdir/exome.pipeline.sh --read1 $r1 --read2 $r2 --sample $sample --outdir $outdir --bed $bed" >> exome.job.adispatch
     done < $fqlist
 fi
 
@@ -104,14 +125,16 @@ then
     then
     while read bam
     do
-	sample=`echo "$bam" | awk '{gsub("/","."); print}' | awk '{gsub("^.",""); print}' | awk '{gsub(".bam",""); print}'`
-	echo "sh $scriptdir/exome.pipeline.sh --sample $sample --outdir $outdir --bamfile $bam --bed $bed "
-    done < $bamlist
+	#sample=`echo "$bam" | awk '{gsub("/","."); print}' | awk '{gsub("^.",""); print}' | awk '{gsub(".bam",""); print}'`
+	sample=$(basename $bam)_folder
+	echo "sh $scriptdir/exome.pipeline.sh --sample $sample --outdir $outdir --bamfile $bam --bed $bed " 
+    done < $bamlist > job1.adispatch
     
     else
 	while read bam
 	do
-	    sample=`echo "$bam" | awk '{gsub("/","."); print}' | awk '{gsub("^.",""); print}' | awk '{gsub(".bam",""); print}'`
+	    #sample=`echo "$bam" | awk '{gsub("/","."); print}' | awk '{gsub("^.",""); print}' | awk '{gsub(".bam",""); print}'`
+	    sample=$(basename $bam)_folder
 	    sh $scriptdir/exome.pipeline.sh --sample $sample --outdir $outdir --bamfile $bam --bed $bed --dryrun
 	    exit 1 
 	done < $bamlist

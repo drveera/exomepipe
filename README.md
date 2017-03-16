@@ -1,4 +1,5 @@
 
+# THIS PIPELINE IS DEPRECATED
 #Exomepipe
 This is a pipeline for variant calling of exomes using GATK's best practices workflow.  In a nutshell, you input fastq files (or aligned bam files) and in just 3 steps, you get the vcf files. 
 
